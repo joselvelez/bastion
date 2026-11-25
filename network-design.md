@@ -335,6 +335,36 @@ Software runs on the hardware above and implements policy, filtering, remote acc
 - Devices that do not use DHCP (static infrastructure) are pointed at the same pfSense IP.
 - Use a short stratum and a small number of upstream servers on pfSense (e.g. pool.ntp.org or regional pools).
 
+### 5.7 Config Backup
+
+#### Design Decision
+**Bastion stores encrypted config backups** of the critical devices. Backups are taken on a schedule and on demand.
+
+| Device | Backup method | Stored where | Notes |
+|--------|---------------|--------------|-------|
+| **pfSense** | Built-in config XML export (API or scheduled) | Bastion | Full firewall config. Restore is straightforward. |
+| **MikroTik CRS310** | RouterOS binary/script export (`/export`) | Bastion | Text or binary backup. Can be reapplied via API or import. |
+| **MikroTik APs** | Same as switch (`/export`) | Bastion | Per-device or via CAPsMAN if used later. |
+| **AdGuard Home** | Config directory / API export | Bastion (same host) | Already local. Include in Bastion’s own backup. |
+| **Bastion itself** | Standard Omarchy / system backup | External or local encrypted volume | Includes AI config, prompts, and the above backups. |
+
+#### Why Bastion holds the backups
+- Fits the single-management-layer principle.
+- Bastion can trigger exports via API (pfSense, MikroTik) without manual steps.
+- One place to restore from if a device is replaced.
+
+#### Recommended practice
+- **Schedule**: Daily or weekly automated export.
+- **On-change**: Optional extra backup after significant config changes.
+- **Retention**: Keep at least 7–14 recent versions.
+- **Encryption**: Backups on Bastion should be encrypted at rest.
+- **Test**: Periodically restore a backup to a spare device or lab to confirm it works.
+- **Off-box copy**: At least one copy of the Bastion backup set should live outside the primary node (another disk, external drive, or Tailscale-accessible location).
+
+#### What is not covered here
+- Full disk images of Bastion (operational, not network design).
+- Client device backups.
+
 ### 5.6 Remote Access & Always-On Node
 - **Tailscale** is the recommended primary method (detailed in Section 6). Runs on the Omarchy always-on node as the subnet router.
 - No inbound port forwarding required.
