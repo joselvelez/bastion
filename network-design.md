@@ -1,7 +1,7 @@
 # Secure Home Network Design Sheet
 ## Overall Best-Practice Baseline (Generic)
 
-**Version:** 1.25  
+**Version:** 1.26  
 **Date:** 2026-11-25  
 
 **Purpose:** Generic, deployable foundation for any household. Hardware and software are clearly separated. Designed to be extended with specific requirements later.
@@ -684,6 +684,30 @@ This section captures the specific components chosen for this design. It serves 
 | **Firewall / Router** | Protectli Vault FW4C running pfSense | Stateful firewall, VLAN routing, default-deny. 4× Intel 2.5GbE ports, fanless. Beelink EQ14 is an acceptable lower-cost alternative. |
 | **Physical kill switch** | DIY ESP32 + micro servo (SG90/MG90S) | Physically presses modem power button; controllable by AI |
 | **Access Points** | 1× MikroTik **cAP ax** + 1× MikroTik **wAP ax** | Ceiling and wall mount options. SSID-to-VLAN mapping. Bastion is the management interface. |
+
+### CRS310 Port Mapping (Example)
+
+The CRS310-8G+2S+IN has 8× 2.5GbE ports and 2× 10G SFP+ ports. This example assigns ports for the initial network. Adjust as needed.
+
+| Port | VLAN / Role | Connected to | Notes |
+|------|-------------|--------------|-------|
+| **ether1** | Trunk (all VLANs) | pfSense LAN port | Uplink to firewall. Tagged for all VLANs. |
+| **ether2** | VLAN 20 (Servers) | Bastion (Omarchy node) | Access port. Bastion lives on Servers VLAN. |
+| **ether3** | VLAN 99 (Management) | Reserved / future | Access port for management devices. |
+| **ether4** | VLAN 10 (Trusted) | Wired trusted client | Access port. |
+| **ether5** | VLAN 10 (Trusted) | Wired trusted client | Access port. |
+| **ether6** | VLAN 30 (IoT) | Wired IoT device (if any) | Access port. |
+| **ether7** | Trunk or access | cAP ax (PoE if available) | Can be access + PoE, or trunk if AP needs multiple SSIDs. |
+| **ether8** | Trunk or access | wAP ax (PoE if available) | Same as ether7. |
+| **sfp-sfpplus1** | Optional | Future 10G device or uplink | Unused in initial setup. |
+| **sfp-sfpplus2** | Optional | Future 10G device | Unused in initial setup. |
+
+#### Notes
+- **ether1** is the only trunk to the firewall. All inter-VLAN traffic is forced through pfSense.
+- Access ports (ether2–ether6) are untagged on their assigned VLAN.
+- APs can be on access ports if they only need one SSID, or trunks if they carry multiple SSIDs. For the initial design, either works; prefer trunks if you want multi-SSID on one AP.
+- PoE: The CRS310-8G+2S+IN does not provide PoE. Use a PoE injector or a PoE switch if the APs need power over Ethernet.
+- Bastion is on VLAN 20 so it can be observed and controlled while remaining in a lower-trust zone than Trusted.
 
 ### Notes
 - Additional components (access points, exact firewall hardware, etc.) will be added here as they are selected.
