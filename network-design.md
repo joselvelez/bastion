@@ -1,7 +1,7 @@
 # Secure Home Network Design Sheet
 ## Overall Best-Practice Baseline (Generic)
 
-**Version:** 1.28  
+**Version:** 1.29  
 **Date:** 2026-11-25  
 
 **Purpose:** Generic, deployable foundation for any household. Hardware and software are clearly separated. Designed to be extended with specific requirements later.
@@ -33,7 +33,7 @@ All major elements (segmentation, Omarchy always-on node, Tailscale, AI monitori
 - [5. Software Components & Configuration](#5-software-components--configuration)
 - [6. Tailscale Integration](#6-tailscale-integration)
 - [7. Physical Internet Kill Switch — DIY ESP32 + Micro Servo Button Pusher](#7-physical-internet-kill-switch--diy-esp32--micro-servo-button-pusher)
-- [8. Omarchy Always-On Node — Tailscale + Local AI Network Monitor](#8-omarchy-always-on-node--tailscale--local-ai-network-monitor)
+- [8. Omarchy Always-On Node — Dedicated Design](#8-omarchy-always-on-node--dedicated-design)
 - [9. Inter-Zone Traffic Policy (Baseline)](#9-inter-zone-traffic-policy-baseline)
 - [10. Security Controls Checklist](#10-security-controls-checklist)
 - [11. High-Level Implementation Order](#11-high-level-implementation-order)
@@ -175,7 +175,22 @@ Internet
 - Avoid using VLAN 1 for production traffic (common attack surface).
 - Subnets can be adjusted (10.x.x.x or others) as long as they do not overlap.
 - Add or remove zones based on household needs.
-- Kill-switch ESP32 belongs on Management (or Servers) VLAN.
+- Kill-switch ESP32 belongs on Management VLAN (99).
+
+### 3.1 IP Addressing Plan (Example)
+
+| VLAN | Subnet | Gateway (pfSense) | Bastion / AdGuard | Notes |
+|------|--------|-------------------|-------------------|-------|
+| 10 Trusted | 192.168.10.0/24 | 192.168.10.1 | — | Clients use AdGuard at 192.168.20.10 |
+| 20 Servers | 192.168.20.0/24 | 192.168.20.1 | **192.168.20.10** (Bastion) | AdGuard Home listens here |
+| 30 IoT | 192.168.30.0/24 | 192.168.30.1 | — | Clients use AdGuard at 192.168.20.10 |
+| 40 Guest | 192.168.40.0/24 | 192.168.40.1 | — | Clients use AdGuard at 192.168.20.10 |
+| 50 Work | 192.168.50.0/24 | 192.168.50.1 | — | Optional |
+| 99 Management | 192.168.99.0/24 | 192.168.99.1 | — | Switch, APs, kill-switch ESP32 |
+
+**AdGuard Home reachability:** Runs on Bastion (192.168.20.10). Firewall rules allow DNS (UDP/TCP 53) from all client VLANs to this address only. All other outbound DNS is blocked.
+
+**Kill-switch ESP32:** Static or reserved address on VLAN 99 (e.g. 192.168.99.10). Reachable by Bastion for control; no unnecessary internet access.
 
 ---
 
@@ -365,17 +380,17 @@ Software runs on the hardware above and implements policy, filtering, remote acc
 - Full disk images of Bastion (operational, not network design).
 - Client device backups.
 
-### 5.6 Remote Access & Always-On Node
+### 5.8 Remote Access & Always-On Node
 - **Tailscale** is the recommended primary method (detailed in Section 6). Runs on the Omarchy always-on node as the subnet router.
 - No inbound port forwarding required.
 - The Omarchy node also hosts **Bastion** for network monitoring (detailed in Section 8).
 
-### 5.7 Kill Switch Control
+### 5.9 Kill Switch Control
 - ESP32 firmware: ESP32-SwitchBot (includes local web UI + Tailscale) or ESPHome.
 - Controllable locally, via Tailscale, and automatically by **Bastion**.
 - See Section 7 for full details.
 
-### 5.8 Optional Advanced Software Features
+### 5.10 Optional Advanced Software Features
 - IDS/IPS (Suricata or Snort).
 - GeoIP blocking.
 - Traffic shaping / QoS.
@@ -723,7 +738,28 @@ The AI is responsible for collecting data and keeping the dashboard current. Min
 
 ---
 
-## 13. Example Setup
+## 12. Maintenance & Operations
+
+### Failure Modes
+| Component down | Impact | Mitigation |
+|----------------|--------|------------|
+| **Bastion** | DNS filtering stops; AI monitoring stops; config backups stop | DHCP still works (pfSense). Clients can be temporarily pointed at public DNS or Unbound on pfSense. Network remains usable. |
+| **pfSense** | All inter-VLAN and internet traffic stops | Highest priority device. UPS recommended operationally. Restore from Bastion-held config if hardware is replaced. |
+| **CRS310** | Wired and wireless clients lose connectivity | APs and Bastion lose uplink. Restore switch config from Bastion after replacement. |
+| **AdGuard Home** | Filtering stops; DNS may fail if it is the only resolver | Fallback: point clients at Unbound on pfSense or a public resolver until restored. |
+| **Kill switch (ESP32)** | Cannot physically disconnect internet via button/AI | Manual modem power-off remains available. |
+
+### Update Policy
+- **pfSense**: Apply security updates within a reasonable window. Review release notes for breaking changes.
+- **RouterOS** (switch and APs): Update on a schedule. Test on one AP first if possible.
+- **Omarchy / Bastion**: Follow normal Arch update practices. Keep AI models and AdGuard Home updated.
+- **ESP32 firmware**: Update when security or reliability fixes are released.
+
+### Operational Notes
+- Review firewall logs and Bastion alerts periodically.
+- Test config restores occasionally.
+- Keep the IP plan and port map current when devices are added.
+- Confirm Tailscale ACLs still match intent after changes.
 
 This section captures the specific components chosen for this design. It serves as a concrete example of how the generic baseline can be implemented.
 
