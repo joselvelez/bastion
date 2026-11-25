@@ -1,10 +1,13 @@
 # Secure Home Network Design Sheet
 ## Overall Best-Practice Baseline (Generic)
 
-**Version:** 1.16  
+**Version:** 1.17  
 **Date:** 2026-11-25  
 
 **Purpose:** Generic, deployable foundation for any household. Hardware and software are clearly separated. Designed to be extended with specific requirements later.
+
+**Primary project repository:** https://github.com/joselvelez/bastion  
+All design documents, AI system code, scripts, prompts, and related work are maintained in this repo.
 
 ### High-Level Summary
 
@@ -15,7 +18,9 @@ This design provides a segmented, defense-in-depth home network with:
 - **Remote access:** Tailscale (WireGuard-based zero-trust mesh) as the primary method — no inbound port forwarding required. Runs on the Omarchy node.
 - **Physical internet kill switch:** DIY ESP32 + micro servo button pusher that physically presses a modem power button or dedicated power switch. Controllable locally, via Tailscale, and automatically by the Omarchy AI when threat level is high.
 - **AI communication requirement:** Every hardware and software component in the design must be able to communicate with the AI model on the Omarchy node. Components that cannot be observed or controlled by the AI are not used.
-- **Bastion:** The local AI monitoring, dashboard, chat interface, and kill-switch control system is implemented in the public repository: https://github.com/joselvelez/bastion (Apache 2.0).
+- **Bastion (primary project repo):** All design, documentation, and implementation live in the public repository:  
+  https://github.com/joselvelez/bastion (Apache 2.0).  
+  This design document is maintained there as the single source of truth.
 
 All major elements (segmentation, Omarchy always-on node, Tailscale, AI monitoring, and the physical kill switch) are first-class parts of the design.
 
