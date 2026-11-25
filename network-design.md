@@ -1,7 +1,7 @@
 # Secure Home Network Design Sheet
 ## Overall Best-Practice Baseline (Generic)
 
-**Version:** 1.24  
+**Version:** 1.25  
 **Date:** 2026-11-25  
 
 **Purpose:** Generic, deployable foundation for any household. Hardware and software are clearly separated. Designed to be extended with specific requirements later.
@@ -278,7 +278,42 @@ Software runs on the hardware above and implements policy, filtering, remote acc
 - pfSense DHCP leases → syslog or API so Bastion knows active devices.
 - Optional later: Bastion can add/remove blocklist rules or whitelist domains via the AdGuard API.
 
-### 5.5 Remote Access & Always-On Node
+### 5.5 Logging
+
+#### Design Decisions
+| Source | Method | Destination | Rationale |
+|--------|--------|-------------|-----------|
+| **pfSense** | Remote syslog (UDP 514) | Bastion | Firewall, DHCP, and system events. Native remote logging. |
+| **MikroTik CRS310** | Remote syslog (UDP 514) | Bastion | Switch events, interface changes, auth. RouterOS remote logging. |
+| **MikroTik APs** (cAP ax / wAP ax) | Remote syslog (UDP 514) | Bastion | Client associations, wireless events. Same as switch. |
+| **AdGuard Home** | Local API + query log | Bastion (same host) | Query log is already on Bastion. API is the clean access path. |
+| **Bastion itself** | Local journal / files | Local | Host and AI process logs stay on the node. |
+
+#### Why centralized on Bastion
+- Bastion is already the observation and management layer.
+- One place for the AI to read firewall blocks, DHCP leases, switch events, AP client activity, and DNS queries.
+- Avoids standing up a separate logging server.
+- Fits the “single interface” principle.
+
+#### What is sent
+| Source | Minimum topics / content |
+|--------|--------------------------|
+| pfSense | System, firewall (blocks + key allows), DHCP |
+| MikroTik switch | info, warning, error, critical + interface / auth topics |
+| MikroTik APs | info, warning, error, critical + wireless topics |
+| AdGuard Home | Query log via API (domains, clients, blocked vs allowed) |
+
+#### Retention & access
+- Bastion retains logs long enough for the AI to detect patterns (recommended: 7–30 days hot, longer if storage allows).
+- Logs are readable by Bastion processes; no separate log UI is required for the user.
+- Optional later: structured storage (e.g. simple database or log files) so Bastion can query efficiently.
+
+#### Notes
+- Use UDP 514 for simplicity on the local network. TCP or a higher port can be used later if reliability becomes an issue.
+- NTP must be consistent across all devices so log timestamps can be correlated.
+- Firewall rules must allow the infrastructure devices to reach Bastion on the syslog port.
+
+### 5.6 Remote Access & Always-On Node
 - **Tailscale** is the recommended primary method (detailed in Section 6). Runs on the Omarchy always-on node as the subnet router.
 - No inbound port forwarding required.
 - The Omarchy node also hosts **Bastion** for network monitoring (detailed in Section 8).
@@ -288,7 +323,7 @@ Software runs on the hardware above and implements policy, filtering, remote acc
 - Controllable locally, via Tailscale, and automatically by **Bastion**.
 - See Section 7 for full details.
 
-### 5.7 Optional Advanced Software Features
+### 5.8 Optional Advanced Software Features
 - IDS/IPS (Suricata or Snort).
 - GeoIP blocking.
 - Traffic shaping / QoS.
