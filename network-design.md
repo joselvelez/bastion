@@ -1,7 +1,7 @@
 # Secure Home Network Design Sheet
 ## Overall Best-Practice Baseline (Generic)
 
-**Version:** 1.17  
+**Version:** 1.18  
 **Date:** 2026-11-25  
 
 **Purpose:** Generic, deployable foundation for any household. Hardware and software are clearly separated. Designed to be extended with specific requirements later.
@@ -14,10 +14,10 @@ All design documents, AI system code, scripts, prompts, and related work are mai
 This design provides a segmented, defense-in-depth home network with:
 
 - **Core network:** VLAN-based segmentation behind a stateful firewall (default-deny).
-- **Always-on Omarchy node:** Small dedicated Minisforum mini-PC running Omarchy (Arch-based) that hosts the Tailscale service (subnet router) and a local AI model for continuous network monitoring and protection.
+- **Always-on Omarchy node:** Small dedicated Minisforum mini-PC running Omarchy (Arch-based) that hosts the Tailscale service (subnet router) and **Bastion** (the local AI system) for continuous network monitoring and protection.
 - **Remote access:** Tailscale (WireGuard-based zero-trust mesh) as the primary method — no inbound port forwarding required. Runs on the Omarchy node.
-- **Physical internet kill switch:** DIY ESP32 + micro servo button pusher that physically presses a modem power button or dedicated power switch. Controllable locally, via Tailscale, and automatically by the Omarchy AI when threat level is high.
-- **AI communication requirement:** Every hardware and software component in the design must be able to communicate with the AI model on the Omarchy node. Components that cannot be observed or controlled by the AI are not used.
+- **Physical internet kill switch:** DIY ESP32 + micro servo button pusher that physically presses a modem power button or dedicated power switch. Controllable locally, via Tailscale, and automatically by **Bastion** when threat level is high.
+- **AI communication requirement:** Every hardware and software component in the design must be able to communicate with **Bastion** (the AI system running on the Omarchy node). Components that cannot be observed or controlled by Bastion are not used.
 - **Bastion (primary project repo):** All design, documentation, and implementation live in the public repository:  
   https://github.com/joselvelez/bastion (Apache 2.0).  
   This design document is maintained there as the single source of truth.
@@ -54,7 +54,7 @@ All major elements (segmentation, Omarchy always-on node, Tailscale, AI monitori
 | **Segmentation** | Isolate risk zones so a compromise in one area cannot freely reach others |
 | **Observability** | Logging and monitoring so issues are detectable |
 | **Controlled Connectivity** | Remote access via Tailscale; physical ability to disconnect internet on demand |
-| **Automated Protection** | Local AI on always-on Omarchy node monitors the network and can trigger the kill switch |
+| **Automated Protection** | **Bastion** (local AI system on the always-on Omarchy node) monitors the network and can trigger the kill switch |
 
 **Default stance:** Deny by default, allow explicitly.
 
@@ -64,14 +64,14 @@ All major elements (segmentation, Omarchy always-on node, Tailscale, AI monitori
 
 ### 2.1 AI Communication Requirement
 
-**Mandatory constraint**: Every hardware and software component used in this design must be able to communicate with the AI model running on the Omarchy node.
+**Mandatory constraint**: Every hardware and software component used in this design must be able to communicate with **Bastion** (the AI system running on the Omarchy node).
 
 - The AI must be able to observe the component (logs, status, telemetry, API, etc.).
 - The AI must be able to act on or control the component where relevant (commands, configuration, triggers).
 - Communication can occur over the local network, Tailscale, local APIs, syslog, or other controlled methods.
 - Any component that cannot meet this requirement is excluded from the design.
 
-This makes the Omarchy AI the central coordination point for the entire network.
+This makes **Bastion** the central coordination point for the entire network.
 
 ### 2.2 AI Communication Compliance (Current Design)
 
@@ -81,7 +81,7 @@ This makes the Omarchy AI the central coordination point for the entire network.
 | Tailscale (on Omarchy) | Yes | Yes | Pass | Local API / logs |
 | ESP32 kill switch | Yes | Yes | Pass | Status + trigger endpoints |
 | Firewall (OPNsense or equivalent) | Partial | Limited | Needs work | Syslog to Omarchy + scriptable API or config interface |
-| Managed switch | Partial | Limited | Needs work | SNMP (or API) reachable by Omarchy AI |
+| Managed switch | Partial | Limited | Needs work | SNMP (or API) reachable by Bastion |
 | Access points | Partial | Limited | Needs work | SNMP / controller API or logs to Omarchy |
 | End devices | Indirect (via firewall/telemetry) | Limited | Acceptable | Observation through network telemetry is sufficient |
 | ISP modem | No | Via kill switch only | Pass | Power controlled by ESP32 |
@@ -102,7 +102,7 @@ This makes the Omarchy AI the central coordination point for the entire network.
 
 **Avoid** pure “Easy Smart” switches (e.g. basic NETGEAR GS308E) for this design — their SNMP support is limited or unreliable.
 
-**Access points**: Required for wireless devices. Each SSID maps to a VLAN. They must expose status/telemetry (SNMP, controller, or logs) that the Omarchy AI can reach. Optional if the network is fully wired.
+**Access points**: Required for wireless devices. Each SSID maps to a VLAN. They must expose status/telemetry (SNMP, controller, or logs) that **Bastion** can reach. Optional if the network is fully wired.
 
 All core infrastructure (firewall, switch, APs) must be configured so the AI can observe them and act where relevant.
 
@@ -126,7 +126,7 @@ Internet
          ├── VLAN 20  Servers / NAS / Home Lab
          │              └── [ Omarchy Always-On Node ]
          │                    - Tailscale subnet router
-         │                    - Local AI model (network monitor)
+         │                    - Bastion (local AI system)
          │                    - Can trigger kill switch
          ├── VLAN 30  IoT / Smart Home
          ├── VLAN 40  Guest
@@ -142,8 +142,8 @@ Internet
 - All inter-VLAN traffic must pass through the firewall.
 - Prefer 802.1Q VLAN tagging end-to-end.
 - **Tailscale** runs primarily on the always-on **Omarchy node** (as subnet router). Provides remote access with no open inbound ports.
-- **Omarchy always-on node** (Servers or Management VLAN) hosts Tailscale and a local AI model that continuously monitors the network and can trigger the kill switch.
-- **Physical kill switch** sits at the modem power path. Controllable locally, via Tailscale, and automatically by the Omarchy AI.
+- **Omarchy always-on node** (Servers or Management VLAN) hosts Tailscale and **Bastion**, which continuously monitors the network and can trigger the kill switch.
+- **Physical kill switch** sits at the modem power path. Controllable locally, via Tailscale, and automatically by **Bastion**.
 - Hardware (Section 4) provides the physical and Layer 2/3 foundation; software (Section 5) implements policy, filtering, remote access, and the kill-switch logic.
 
 ---
@@ -224,11 +224,11 @@ Software runs on the hardware above and implements policy, filtering, remote acc
 ### 5.5 Remote Access & Always-On Node
 - **Tailscale** is the recommended primary method (detailed in Section 6). Runs on the Omarchy always-on node as the subnet router.
 - No inbound port forwarding required.
-- The Omarchy node also hosts the local AI model for network monitoring (detailed in Section 8).
+- The Omarchy node also hosts **Bastion** for network monitoring (detailed in Section 8).
 
 ### 5.6 Kill Switch Control
 - ESP32 firmware: ESP32-SwitchBot (includes local web UI + Tailscale) or ESPHome.
-- Controllable locally, via Tailscale, and automatically by the Omarchy AI model.
+- Controllable locally, via Tailscale, and automatically by **Bastion**.
 - See Section 7 for full details.
 
 ### 5.7 Optional Advanced Software Features
@@ -371,14 +371,14 @@ Features relevant to this design:
 
 ## 8. Omarchy Always-On Node — Dedicated Design
 
-A small, always-on machine running **Omarchy** (Arch-based Linux distro by DHH). It is the primary host for Tailscale and the local AI network monitor. This section defines its role, placement, capabilities, and operational requirements in more detail.
+A small, always-on machine running **Omarchy** (Arch-based Linux distro by DHH). It is the primary host for Tailscale and **Bastion**. This section defines its role, placement, capabilities, and operational requirements in more detail.
 
 ### 8.1 Purpose & Roles
 
 | Role | Description |
 |------|-------------|
 | **Tailscale Subnet Router** | Always-on Tailscale node that advertises only the required home subnets. Primary remote-access path. |
-| **Local AI Network Monitor** | Runs a dedicated local AI model that continuously evaluates network telemetry and threat level. |
+| **Bastion** | Local AI system that continuously evaluates network telemetry and threat level. |
 | **Kill Switch Controller** | Can autonomously trigger the ESP32 physical kill switch when the AI determines the threat level is high enough. |
 | **Telemetry Collector** | Receives and stores relevant logs/telemetry for the AI model to analyze. |
 
@@ -395,7 +395,7 @@ A small, always-on machine running **Omarchy** (Arch-based Linux distro by DHH).
 
 ### 8.3 AI Monitoring Design
 
-The local AI model is the core protection mechanism on this node.
+**Bastion** is the core protection mechanism on this node.
 
 **Telemetry sources (baseline):**
 - Firewall syslog (allowed/denied connections, interface events)
@@ -492,7 +492,7 @@ Normal day-to-day management and observation does **not** require:
 All routine visibility and control is handled through the Omarchy server.
 
 #### Interaction methods
-1. **Direct chat with the local AI model** — natural language queries and commands.
+1. **Direct chat with Bastion** — natural language queries and commands.
 2. **AI-managed dashboard** — visual overview maintained by the AI.
 
 #### Dashboard contents (baseline)
@@ -548,7 +548,7 @@ The AI is responsible for collecting data and keeping the dashboard current. Min
 - [ ] Only required subnets advertised and approved in the Tailscale admin console
 - [ ] Tailscale policy file (grants/ACLs) configured for least privilege
 - [ ] Omarchy always-on node deployed and hardened
-- [ ] Local AI model running on Omarchy node and receiving network telemetry
+- [ ] Bastion running on Omarchy node and receiving network telemetry
 - [ ] AI-to-kill-switch trigger path tested (with human override confirmed)
 - [ ] Firewall rules on the Tailscale interface reviewed and restricted as appropriate
 - [ ] Logging enabled
@@ -568,7 +568,7 @@ The AI is responsible for collecting data and keeping the dashboard current. Min
 4. Install and harden firewall.
 5. Deploy and harden the Omarchy always-on node.
 6. Install and configure Tailscale on the Omarchy node (subnet router).
-7. Deploy local AI model on Omarchy node and connect it to network logs.
+7. Deploy Bastion on Omarchy node and connect it to network logs.
 8. Create VLANs and subnets.
 9. Configure managed switch and APs (trunk ports, SSID-to-VLAN).
 10. Write firewall rules (start restrictive, open only what is needed).
@@ -587,11 +587,11 @@ This section captures the specific components chosen for this design. It serves 
 
 | Role | Model / Choice | Notes |
 |------|----------------|-------|
-| **Always-on Omarchy node** | Minisforum mini-PC (e.g. UM890 Pro or equivalent) | Runs Omarchy, Tailscale subnet router, and local AI model |
+| **Always-on Omarchy node** | Minisforum mini-PC (e.g. UM890 Pro or equivalent) | Runs Omarchy, Tailscale subnet router, and Bastion |
 | **Core switch** | **MikroTik CRS310-8G+2S+IN** | 8× 2.5GbE + 2× 10G SFP+. Full RouterOS with strong SNMP + API for AI communication |
 | **Firewall / Router** | OPNsense (or equivalent) on dedicated hardware | Stateful firewall, VLAN routing, default-deny |
 | **Physical kill switch** | DIY ESP32 + micro servo (SG90/MG90S) | Physically presses modem power button; controllable by AI |
-| **Local AI model** | Qwen3.8 27B or Thinking Machines Inkling 2 Mini | Served via Ollama on the Omarchy node |
+| **Bastion** | Qwen3.8 27B or Thinking Machines Inkling 2 Mini | Served via Ollama on the Omarchy node |
 
 ### Notes
 - Additional components (access points, exact firewall hardware, etc.) will be added here as they are selected.
