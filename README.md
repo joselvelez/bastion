@@ -6,7 +6,7 @@ Primary project repository for the secure home network design and its local AI m
 
 ## What lives here
 
-- Network design document (`docs/network-design.md`)
+- **Network design document** (`network-design.md`) — first-class document at the repo root
 - Local AI system (telemetry, prompts, decision logic, dashboard, kill-switch integration)
 - All related scripts, configs, and documentation
 
@@ -26,11 +26,12 @@ Early design / scaffolding.
 ## Structure
 
 ```
-/docs          Network design and related documentation
-/telemetry     Collectors and parsers (syslog, DNS, SNMP, etc.)
-/prompts       System prompts and decision logic
-/dashboard     AI-managed dashboard
-/killswitch    Integration with ESP32 physical kill switch
+/network-design.md   Secure home network design (first-class)
+/docs                Additional documentation
+/telemetry           Collectors and parsers (syslog, DNS, SNMP, etc.)
+/prompts             System prompts and decision logic
+/dashboard           AI-managed dashboard
+/killswitch          Integration with ESP32 physical kill switch
 ```
 
 ## License
