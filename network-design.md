@@ -1,7 +1,7 @@
 # Secure Home Network Design Sheet
 ## Overall Best-Practice Baseline (Generic)
 
-**Version:** 1.18  
+**Version:** 1.19  
 **Date:** 2026-11-25  
 
 **Purpose:** Generic, deployable foundation for any household. Hardware and software are clearly separated. Designed to be extended with specific requirements later.
@@ -73,7 +73,19 @@ All major elements (segmentation, Omarchy always-on node, Tailscale, AI monitori
 
 This makes **Bastion** the central coordination point for the entire network.
 
-### 2.2 AI Communication Compliance (Current Design)
+## 2.3 ISP Connection Model
+
+**Required:** Bridge / passthrough / IP passthrough.  
+**Double NAT is not permitted**, except when using Starlink.
+
+- The ISP device (modem/ONT or gateway) is used only as a Layer 2 handoff.
+- One Ethernet cable connects the ISP device to the WAN port of the firewall.
+- On the ISP device:
+  - Wi-Fi is disabled
+  - Routing, DHCP, and firewall features are disabled or bypassed
+  - Bridge / passthrough / IP passthrough mode is enabled so the firewall receives a public IP
+- The firewall is the only router, DHCP server, and firewall for the network.
+- Physical kill switch controls power to the ISP device (or its uplink) when needed.
 
 | Component | Observation | Control | Status | Required Integration |
 |-----------|-------------|---------|--------|----------------------|
