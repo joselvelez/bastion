@@ -1,7 +1,7 @@
 # Secure Home Network Design Sheet
 ## Overall Best-Practice Baseline (Generic)
 
-**Version:** 1.23  
+**Version:** 1.24  
 **Date:** 2026-11-25  
 
 **Purpose:** Generic, deployable foundation for any household. Hardware and software are clearly separated. Designed to be extended with specific requirements later.
@@ -228,15 +228,55 @@ Software runs on the hardware above and implements policy, filtering, remote acc
 - Disable legacy protocols (WEP, TKIP).
 
 ### 5.3 Network Services
-- DHCP scopes defined per VLAN.
+- DHCP scopes defined per VLAN on pfSense (see Section 5.4).
 - Static DHCP reservations for infrastructure devices and important servers.
 - NTP for time synchronization across the network.
-- Logging enabled and retained (local or remote syslog).
+- Logging enabled and retained (local or remote syslog to Bastion).
 
-### 5.4 DNS & Filtering
-- Local DNS resolver.
-- Ad/malware filtering (Pi-hole, AdGuard Home, or built-in firewall feature).
-- DNS over HTTPS (DoH) or DNS over TLS (DoT) where supported.
+### 5.4 DNS & DHCP
+
+#### Design Decisions
+| Component | Choice | Rationale |
+|-----------|--------|-----------|
+| **DHCP** | pfSense (one scope per VLAN) | Tightly coupled to interfaces and VLANs. Keeps addressing reliable even if Bastion is down. |
+| **DNS filtering** | AdGuard Home on the Omarchy node (Bastion) | High-signal data stays where Bastion can observe and act. Clean API for future automation. |
+| **Recursive resolution** | Unbound on pfSense (or local to Bastion) | AdGuard Home forwards non-blocked queries to Unbound. Avoids single upstream resolver seeing all queries. |
+| **Client DNS** | Only the designated resolver is allowed | Firewall rules block outbound DNS (53/853) from clients except to AdGuard Home, preventing bypass. |
+
+#### Why this split
+- **Bastion is the management layer.** AdGuard Home’s query log and API give Bastion direct visibility without scraping syslog.
+- **DHCP stays on pfSense** so new devices can still obtain addresses if Bastion is offline.
+- **Filtering is a first-class signal** for threat detection. Placing it on Bastion makes the data native to the AI.
+- **Separation of duties**: pfSense handles routing and addressing; Bastion handles observation and DNS policy.
+
+#### DHCP Layout (same pattern on every VLAN)
+| Range | Purpose | Example (Trusted /24) |
+|-------|---------|------------------------|
+| `.1` | Gateway (pfSense) | `192.168.10.1` |
+| `.2`–`.49` | Reserved / static (infrastructure) | Bastion, switch, APs |
+| `.50`–`.199` | DHCP pool | Normal clients |
+| `.200`–`.249` | DHCP reservations | Devices that should keep a stable IP |
+| `.250`–`.254` | Spare | Testing |
+
+#### Per-VLAN DNS Behavior
+| VLAN | DNS server handed out | Notes |
+|------|-----------------------|-------|
+| Trusted | AdGuard Home (Bastion IP) | Full filtering + local names |
+| Servers | AdGuard Home | Same |
+| IoT | AdGuard Home | Can use stricter lists |
+| Guest | AdGuard Home | Guest-specific rules; short lease |
+| Management | AdGuard Home | |
+
+#### Key Settings
+- **Lease time**: 8–24 hours for Trusted/Servers; 1–4 hours for Guest/IoT.
+- **Register DHCP leases in DNS**: Enabled so local hostnames resolve.
+- **Static mappings**: Bastion, switch, APs, firewall management.
+- **Block outbound DNS** from clients except to the designated resolver.
+
+#### Bastion Integration
+- AdGuard Home query log + API → Bastion sees queried domains and can alert or adjust rules.
+- pfSense DHCP leases → syslog or API so Bastion knows active devices.
+- Optional later: Bastion can add/remove blocklist rules or whitelist domains via the AdGuard API.
 
 ### 5.5 Remote Access & Always-On Node
 - **Tailscale** is the recommended primary method (detailed in Section 6). Runs on the Omarchy always-on node as the subnet router.
