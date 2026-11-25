@@ -1,7 +1,7 @@
 # Secure Home Network Design Sheet
 ## Overall Best-Practice Baseline (Generic)
 
-**Version:** 1.20  
+**Version:** 1.22  
 **Date:** 2026-11-25  
 
 **Purpose:** Generic, deployable foundation for any household. Hardware and software are clearly separated. Designed to be extended with specific requirements later.
@@ -114,7 +114,7 @@ This makes **Bastion** the central coordination point for the entire network.
 
 **Avoid** pure “Easy Smart” switches (e.g. basic NETGEAR GS308E) for this design — their SNMP support is limited or unreliable.
 
-**Access points**: Required for wireless devices. Each SSID maps to a VLAN. They must expose status/telemetry (SNMP, controller, or logs) that **Bastion** can reach. Optional if the network is fully wired.
+**Access points**: MikroTik cAP ax (or equivalent) preferred. Each SSID maps to a VLAN. Bastion is the management interface (status, clients, SSIDs, VLANs). Optional if the network is fully wired.
 
 All core infrastructure (firewall, switch, APs) must be configured so the AI can observe them and act where relevant.
 
@@ -187,7 +187,7 @@ Hardware provides the physical and Layer 2/3 foundation. Software (Section 5) ru
 |--------------------|-----------------------------------|-------------------------------------------|-------------------------------------|
 | **Firewall / Router** | Routing, stateful firewall, inter-VLAN policy | VLAN-capable, 2+ Intel NICs, 8 GB RAM | Protectli Vault (example: V1410), Beelink EQ14, or equivalent mini-PC running pfSense / OPNsense |
 | **Managed Switch** | VLAN segmentation, PoE delivery   | 802.1Q support, managed, preferably PoE   | UniFi, TP-Link Omada, Netgear, Cisco SG series |
-| **Access Points**  | Wireless coverage and SSID-to-VLAN mapping | Multi-SSID, VLAN tagging, WPA3 support    | UniFi, TP-Link Omada, Aruba Instant On |
+| **Access Points**  | Wireless coverage and SSID-to-VLAN mapping | Multi-SSID, VLAN tagging, WPA3 support    | MikroTik cAP ax (preferred). Bastion is the management interface. |
 | **Modem / ONT**    | ISP handoff                       | Bridge mode preferred                     | ISP-provided or third-party         |
 | **Omarchy Always-On Node** | Tailscale subnet router + local AI monitor | Minisforum mini-PC (x86_64), 16–32 GB+ RAM preferred | Minisforum UM890 Pro (or MS series) running Omarchy |
 | **Kill Switch Actuator** | Physically presses power button/switch | ESP32 + micro servo (SG90/MG90S)         | DIY (see Section 7)                 |
@@ -608,7 +608,7 @@ This section captures the specific components chosen for this design. It serves 
 | **Core switch** | **MikroTik CRS310-8G+2S+IN** | 8× 2.5GbE + 2× 10G SFP+. Full RouterOS with strong SNMP + API for AI communication |
 | **Firewall / Router** | Protectli Vault FW4C running pfSense | Stateful firewall, VLAN routing, default-deny. 4× Intel 2.5GbE ports, fanless. Beelink EQ14 is an acceptable lower-cost alternative. |
 | **Physical kill switch** | DIY ESP32 + micro servo (SG90/MG90S) | Physically presses modem power button; controllable by AI |
-| **Bastion** | Qwen3.8 27B or Thinking Machines Inkling 2 Mini | Served via Ollama on the Omarchy node |
+| **Access Points** | MikroTik cAP ax (or equivalent) | SSID-to-VLAN mapping. Bastion is the management interface (status, clients, config). |
 
 ### Notes
 - Additional components (access points, exact firewall hardware, etc.) will be added here as they are selected.
