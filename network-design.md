@@ -318,7 +318,7 @@ Software runs on the hardware above and implements policy, filtering, remote acc
 - No inbound port forwarding required.
 - The Omarchy node also hosts **Bastion** for network monitoring (detailed in Section 8).
 
-### 5.6 Kill Switch Control
+### 5.7 Kill Switch Control
 - ESP32 firmware: ESP32-SwitchBot (includes local web UI + Tailscale) or ESPHome.
 - Controllable locally, via Tailscale, and automatically by **Bastion**.
 - See Section 7 for full details.
