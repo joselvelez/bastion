@@ -1,7 +1,7 @@
 # Secure Home Network Design Sheet
 ## Overall Best-Practice Baseline (Generic)
 
-**Version:** 1.29  
+**Version:** 1.30  
 **Date:** 2026-11-25  
 
 **Purpose:** Generic, deployable foundation for any household. Hardware and software are clearly separated. Designed to be extended with specific requirements later.
@@ -23,6 +23,10 @@ This design provides a segmented, defense-in-depth home network with:
   This design document is maintained there as the single source of truth.
 
 All major elements (segmentation, Omarchy always-on node, Tailscale, AI monitoring, and the physical kill switch) are first-class parts of the design.
+
+### Architecture Diagram
+
+![Secure Home Network Architecture](diagrams/architecture.png)
 
 ## Table of Contents
 
@@ -761,7 +765,13 @@ The AI is responsible for collecting data and keeping the dashboard current. Min
 - Keep the IP plan and port map current when devices are added.
 - Confirm Tailscale ACLs still match intent after changes.
 
+## 13. Example Setup
+
 This section captures the specific components chosen for this design. It serves as a concrete example of how the generic baseline can be implemented.
+
+### Example Setup Diagram
+
+![Example Setup — Physical & Logical](diagrams/example-setup.png)
 
 ### Selected Components
 
