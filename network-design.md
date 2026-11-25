@@ -606,7 +606,7 @@ This section captures the specific components chosen for this design. It serves 
 |------|----------------|-------|
 | **Always-on Omarchy node** | Minisforum mini-PC (e.g. UM890 Pro or equivalent) | Runs Omarchy, Tailscale subnet router, and Bastion |
 | **Core switch** | **MikroTik CRS310-8G+2S+IN** | 8× 2.5GbE + 2× 10G SFP+. Full RouterOS with strong SNMP + API for AI communication |
-| **Firewall / Router** | Protectli Vault V1410 (or equivalent) running pfSense | Stateful firewall, VLAN routing, default-deny. 4× Intel 2.5GbE ports, fanless. Beelink EQ14 is an acceptable lower-cost alternative. |
+| **Firewall / Router** | Protectli Vault FW4C running pfSense | Stateful firewall, VLAN routing, default-deny. 4× Intel 2.5GbE ports, fanless. Beelink EQ14 is an acceptable lower-cost alternative. |
 | **Physical kill switch** | DIY ESP32 + micro servo (SG90/MG90S) | Physically presses modem power button; controllable by AI |
 | **Bastion** | Qwen3.8 27B or Thinking Machines Inkling 2 Mini | Served via Ollama on the Omarchy node |
 
