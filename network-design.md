@@ -1,7 +1,7 @@
 # Secure Home Network Design Sheet
 ## Overall Best-Practice Baseline (Generic)
 
-**Version:** 1.19  
+**Version:** 1.20  
 **Date:** 2026-11-25  
 
 **Purpose:** Generic, deployable foundation for any household. Hardware and software are clearly separated. Designed to be extended with specific requirements later.
@@ -185,7 +185,7 @@ Hardware provides the physical and Layer 2/3 foundation. Software (Section 5) ru
 
 | Component          | Role                              | Key Requirements                          | Example Categories                  |
 |--------------------|-----------------------------------|-------------------------------------------|-------------------------------------|
-| **Firewall / Router** | Routing, stateful firewall, inter-VLAN policy | VLAN-capable, sufficient CPU/RAM, 2+ NICs | OPNsense/pfSense appliance or mini-PC, UniFi gateway, Firewalla |
+| **Firewall / Router** | Routing, stateful firewall, inter-VLAN policy | VLAN-capable, 2+ Intel NICs, 8 GB RAM | Protectli Vault (example: V1410), Beelink EQ14, or equivalent mini-PC running pfSense / OPNsense |
 | **Managed Switch** | VLAN segmentation, PoE delivery   | 802.1Q support, managed, preferably PoE   | UniFi, TP-Link Omada, Netgear, Cisco SG series |
 | **Access Points**  | Wireless coverage and SSID-to-VLAN mapping | Multi-SSID, VLAN tagging, WPA3 support    | UniFi, TP-Link Omada, Aruba Instant On |
 | **Modem / ONT**    | ISP handoff                       | Bridge mode preferred                     | ISP-provided or third-party         |
@@ -207,6 +207,11 @@ Hardware provides the physical and Layer 2/3 foundation. Software (Section 5) ru
 Software runs on the hardware above and implements policy, filtering, remote access, monitoring, and kill-switch control.
 
 ### 5.1 Firewall Operating System / Firmware
+
+- **Primary:** pfSense (preferred) or OPNsense
+- Strong preference for Intel NICs (i226 preferred)
+- Default-deny inter-VLAN policy
+- Syslog forwarding to the Omarchy node (Bastion) is required
 - Change all default credentials immediately.
 - Disable remote management from the WAN.
 - Disable UPnP and WPS.
@@ -601,7 +606,7 @@ This section captures the specific components chosen for this design. It serves 
 |------|----------------|-------|
 | **Always-on Omarchy node** | Minisforum mini-PC (e.g. UM890 Pro or equivalent) | Runs Omarchy, Tailscale subnet router, and Bastion |
 | **Core switch** | **MikroTik CRS310-8G+2S+IN** | 8× 2.5GbE + 2× 10G SFP+. Full RouterOS with strong SNMP + API for AI communication |
-| **Firewall / Router** | OPNsense (or equivalent) on dedicated hardware | Stateful firewall, VLAN routing, default-deny |
+| **Firewall / Router** | Protectli Vault V1410 (or equivalent) running pfSense | Stateful firewall, VLAN routing, default-deny. 4× Intel 2.5GbE ports, fanless. Beelink EQ14 is an acceptable lower-cost alternative. |
 | **Physical kill switch** | DIY ESP32 + micro servo (SG90/MG90S) | Physically presses modem power button; controllable by AI |
 | **Bastion** | Qwen3.8 27B or Thinking Machines Inkling 2 Mini | Served via Ollama on the Omarchy node |
 
